@@ -10,7 +10,7 @@ mutable struct Body
 end
 
 function Force(body1, body2)
-	G = 10.5
+	G = 5.5
 	
 	
 	n = norm(body1.pos - body2.pos )
@@ -19,18 +19,15 @@ function Force(body1, body2)
 		return 0.0
 	end
 	
-	G *	body1.mass * body2.mass / (n)^3
+	G *	body1.mass * body2.mass / ((n)^3 + 1)
 
 end
 
 function update_status!(bodies)
-	for i = 1:length(bodies)-1
+	for i =1:length(bodies)-1
 		for j = i+1:length(bodies)
 			k = Force(bodies[i], bodies[j])
 			
-			if k == 0.0
-				continue
-			end
 			
 			r = k * (bodies[i].pos - bodies[j].pos)
 			bodies[i].force -= r 
@@ -39,18 +36,22 @@ function update_status!(bodies)
 	end
 
 
+	i = 0
 	for body in bodies
+		i += 1
+		if i == 1
+			continue
+		end
+
 		body.vel += body.force / body.mass
 		body.pos += body.vel
 		
-		if sum(body.pos .<= -1000 ) + sum(body.pos .>= 1000) > 0
+		if  sum(body.pos .<= -10000 ) + sum(body.pos .>= 10000) > 0
 			body.vel *= -0.9
 		end
 
 		body.force *= 0
 	end
-	#@show bodies[1].pos
-
 end
 
 
@@ -60,7 +61,7 @@ function get_bodies(n)
 			push!(bodies, Body( 5 + 20abs(randn()), -1000 .+ 2000rand(2), zeros(2), zeros(2)  ))
 	end
 
-	bodies[1].mass = 200
+	bodies[1].mass = 500
 
 	bodies
 end
@@ -68,17 +69,19 @@ end
 
 function main()
 	bodies = get_bodies(100)
-	display(bodies)
-
-	scene = Scene()
+	
+	scene = lines(-1000:1000, 1000ones(2001))
+	lines!(scene, -1000:1000, -1000ones(2001))
+	
+	lines!(scene, -1000ones(2001), -1000:1000)
+	lines!(scene, 1000ones(2001), -1000:1000)
 
 	t = Node(0.0)
 	
 	pos = lift(t) do t
 		
-		#println("asdafad: ", t)
+
 			
-		update_status!(bodies)
 		
 		x = map(b -> b.pos[1], bodies)
 		y = map(b -> b.pos[2], bodies)
@@ -87,8 +90,6 @@ function main()
 	end
 
 	
-	##display(Array(pos)[1])
-	#return pos
 	s = scatter!(scene, pos, color=rand(10), markersize=map(b -> b.mass, bodies))
 	
 	
@@ -98,11 +99,13 @@ function main()
 		
 			
 		t[] = i	
-
+		i = (i +1) % 1000
+		update_status!(bodies)
+		println("aaaa: ", i)
 		# display(x)
 
 	
-		sleep(1/25)
+		#sleep(1/25)
 	end	
 
 
